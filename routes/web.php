@@ -15,7 +15,9 @@ Route::get('/items/{slug}', [CatalogController::class, 'show'])->name('catalog.s
 Route::get('/developers', [CatalogController::class, 'developers'])->name('developers');
 
 Route::get('/dashboard', function () {
-    return redirect()->route('developer.items.index');
+    return auth()->user()->isAdmin()
+        ? redirect()->route('admin.review.index')
+        : redirect()->route('developer.items.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

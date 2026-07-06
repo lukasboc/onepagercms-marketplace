@@ -12,8 +12,16 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                    <x-nav-link :href="route('developer.items.index')" :active="request()->routeIs('developer.*')">
+                        {{ __('My Items') }}
+                    </x-nav-link>
+                    @if (Auth::user()->isAdmin())
+                        <x-nav-link :href="route('admin.review.index')" :active="request()->routeIs('admin.*')">
+                            {{ __('Review Queue') }}
+                        </x-nav-link>
+                    @endif
+                    <x-nav-link :href="route('landing')">
+                        {{ __('Marketplace') }}
                     </x-nav-link>
                 </div>
             </div>
@@ -67,8 +75,16 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+            <x-responsive-nav-link :href="route('developer.items.index')" :active="request()->routeIs('developer.*')">
+                {{ __('My Items') }}
+            </x-responsive-nav-link>
+            @if (Auth::user()->isAdmin())
+                <x-responsive-nav-link :href="route('admin.review.index')" :active="request()->routeIs('admin.*')">
+                    {{ __('Review Queue') }}
+                </x-responsive-nav-link>
+            @endif
+            <x-responsive-nav-link :href="route('landing')">
+                {{ __('Marketplace') }}
             </x-responsive-nav-link>
         </div>
 
