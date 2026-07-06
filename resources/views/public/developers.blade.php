@@ -80,8 +80,10 @@
                 <li><code>version</code>: <code>1.0</code> or <code>1.0.0</code> style; each update must increase it.</li>
                 <li><code>main</code> (plugins only): the PHP entry file, included while your plugin is active.</li>
                 <li>Plugins hook into the CMS via a WordPress-style API (<code>add_action</code>/<code>add_filter</code>);
-                    themes override templates of the default theme. See the extension documentation shipped with
-                    OnePagerCMS (<code>docs/EXTENSIONS.md</code>) for the full hook and template reference.</li>
+                    themes override templates of the default theme. Plugins can even register entirely new
+                    <strong>section types</strong> (portfolio, image gallery, …) that plug into the New Section flow.
+                    See the extension documentation shipped with OnePagerCMS (<code>docs/EXTENSIONS.md</code>) for the
+                    full hook, template and section type reference.</li>
             </ul>
         </section>
 
