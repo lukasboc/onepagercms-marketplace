@@ -19,6 +19,9 @@
                         @else
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded text-sm font-medium bg-green-100 text-green-800">Free</span>
                         @endif
+                        @if ($item->status === \App\Models\Item::STATUS_DELISTED)
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded text-sm font-medium bg-red-100 text-red-800">Delisted</span>
+                        @endif
                     </h1>
                     <p class="mt-1 text-sm text-gray-500">
                         {{ ucfirst($item->type) }} · <code class="text-xs">{{ $item->slug }}</code> · by
@@ -27,7 +30,10 @@
                     <p class="mt-4 text-gray-700">{{ $item->summary }}</p>
                 </div>
                 <div class="shrink-0 space-y-2 text-right">
-                    @if ($item->is_paid)
+                    @if ($item->status === \App\Models\Item::STATUS_DELISTED)
+                        <p class="text-xs text-gray-500 max-w-[220px]">This {{ $item->type }} is currently not
+                            available in the marketplace.</p>
+                    @elseif ($item->is_paid)
                         @if ($item->purchase_url)
                             <a href="{{ $item->purchase_url }}" target="_blank" rel="noopener"
                                class="inline-flex items-center px-5 py-2.5 bg-indigo-600 rounded-md text-white font-semibold hover:bg-indigo-500">
@@ -46,6 +52,46 @@
                     @endif
                 </div>
             </div>
+
+            @if (auth()->user()?->isAdmin())
+                <div class="mt-8 border-t border-gray-100 pt-6">
+                    <h2 class="font-semibold text-gray-900 mb-3">Moderation</h2>
+
+                    @if (session('status'))
+                        <p class="mb-4 text-sm font-medium text-green-600">{{ session('status') }}</p>
+                    @endif
+
+                    @if ($item->status === \App\Models\Item::STATUS_APPROVED)
+                        <form method="post" action="{{ route('admin.items.delist', $item) }}" class="max-w-lg space-y-3">
+                            @csrf
+                            <div>
+                                <label for="delist-note" class="block text-sm font-medium text-gray-700">Note (optional)</label>
+                                <textarea name="note" id="delist-note" rows="2"
+                                          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm text-sm"
+                                          placeholder="Reason for removing this {{ $item->type }} from the marketplace"></textarea>
+                            </div>
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500">
+                                Delist
+                            </button>
+                        </form>
+                    @elseif ($item->status === \App\Models\Item::STATUS_DELISTED)
+                        <form method="post" action="{{ route('admin.items.relist', $item) }}" class="max-w-lg space-y-3">
+                            @csrf
+                            <div>
+                                <label for="relist-note" class="block text-sm font-medium text-gray-700">Note (optional)</label>
+                                <textarea name="note" id="relist-note" rows="2"
+                                          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm text-sm"
+                                          placeholder="Reason for listing this {{ $item->type }} again"></textarea>
+                            </div>
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500">
+                                Relist
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            @endif
 
             @if ($item->description)
                 <div class="mt-8 border-t border-gray-100 pt-6 text-gray-700 whitespace-pre-line">{{ $item->description }}</div>

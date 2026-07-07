@@ -37,11 +37,17 @@ class CatalogController extends Controller
         return $this->listByType('theme', $request);
     }
 
-    public function show(string $slug): View
+    public function show(Request $request, string $slug): View
     {
-        $item = $this->publicQuery()
+        // Admins may still view delisted items so they can relist them.
+        $statuses = $request->user()?->isAdmin()
+            ? [Item::STATUS_APPROVED, Item::STATUS_DELISTED]
+            : [Item::STATUS_APPROVED];
+
+        $item = Item::whereIn('status', $statuses)
+            ->whereHas('versions', fn ($q) => $q->where('status', ItemVersion::STATUS_APPROVED))
+            ->with(['versions' => fn ($q) => $q->where('status', ItemVersion::STATUS_APPROVED), 'user', 'screenshots'])
             ->where('slug', $slug)
-            ->with(['user', 'screenshots'])
             ->firstOrFail();
 
         $latest = $item->latestApprovedVersion();

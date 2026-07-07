@@ -86,6 +86,39 @@ class PublicPagesTest extends TestCase
             ->assertSee('plugin.json');
     }
 
+    public function test_legal_notice_is_public_and_shows_operator_from_config(): void
+    {
+        config([
+            'legal.operator.name' => 'Test Operator',
+            'legal.operator.email' => 'legal@example.test',
+        ]);
+
+        $this->get('/legal-notice')
+            ->assertOk()
+            ->assertSee('Legal notice')
+            ->assertSee('Test Operator')
+            ->assertSee('legal@example.test');
+    }
+
+    public function test_privacy_policy_is_public_and_shows_controller_from_config(): void
+    {
+        config(['legal.operator.name' => 'Test Operator']);
+
+        $this->get('/privacy-policy')
+            ->assertOk()
+            ->assertSee('Privacy policy')
+            ->assertSee('Test Operator')
+            ->assertSee('GDPR');
+    }
+
+    public function test_footer_links_to_legal_pages(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee(route('legal-notice'))
+            ->assertSee(route('privacy-policy'));
+    }
+
     public function test_submission_still_requires_login(): void
     {
         $this->get(route('developer.items.create'))->assertRedirect(route('login'));

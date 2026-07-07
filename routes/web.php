@@ -4,7 +4,9 @@ use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\Developer\ItemController;
 use App\Http\Controllers\Developer\ItemVersionController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\ProfileController;
+use App\Models\VersionCheck;
 use Illuminate\Support\Facades\Route;
 
 // Public catalog — no login required.
@@ -13,6 +15,8 @@ Route::get('/plugins', [CatalogController::class, 'plugins'])->name('catalog.plu
 Route::get('/themes', [CatalogController::class, 'themes'])->name('catalog.themes');
 Route::get('/items/{slug}', [CatalogController::class, 'show'])->name('catalog.show');
 Route::get('/developers', [CatalogController::class, 'developers'])->name('developers');
+Route::get('/legal-notice', [LegalController::class, 'legalNotice'])->name('legal-notice');
+Route::get('/privacy-policy', [LegalController::class, 'privacyPolicy'])->name('privacy-policy');
 
 Route::get('/dashboard', function () {
     return auth()->user()->isAdmin()
@@ -40,6 +44,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/review/{version}/approve', [ReviewController::class, 'approve'])->name('review.approve');
     Route::post('/review/{version}/reject', [ReviewController::class, 'reject'])->name('review.reject');
     Route::get('/review/{version}/download', [ReviewController::class, 'download'])->name('review.download');
+    Route::post('/review/{version}/checks/{check}', [ReviewController::class, 'runCheck'])
+        ->whereIn('check', VersionCheck::CHECKS)->name('review.checks.run');
+    Route::post('/items/{item}/delist', [ReviewController::class, 'delist'])->name('items.delist');
+    Route::post('/items/{item}/relist', [ReviewController::class, 'relist'])->name('items.relist');
 });
 
 require __DIR__.'/auth.php';

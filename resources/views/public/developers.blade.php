@@ -117,7 +117,7 @@
 GET {update_endpoint}?opcms_action=activate_license&amp;slug=&amp;license=&amp;site=
   → { "success": true } | { "success": false, "error": "invalid|expired|site_limit" }</code></pre>
             <p class="text-gray-600 mt-3 text-sm">A ready-to-adapt reference implementation is available in the
-                marketplace repository under <code>docs/license-server-example.php</code>. For review purposes you
+                marketplace repository under <code><a target="_blank" href="https://github.com/lukasboc/onepagercms-marketplace/blob/main/docs/license-server-example.php">docs/license-server-example.php</a></code>. For review purposes you
                 still submit your full ZIP — it is never distributed by the marketplace.</p>
         </section>
 

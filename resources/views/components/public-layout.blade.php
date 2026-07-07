@@ -45,9 +45,12 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between gap-4 text-sm text-gray-500">
         <p>&copy; {{ date('Y') }} <a class="hover:text-gray-700" href="https://onepagercms.de">OnePagerCMS</a></p>
         <div class="flex gap-6">
+            <a class="hover:text-gray-700" href="https://github.com/lukasboc/onepagercms-marketplace/" target="_blank">GitHub</a>
             <a class="hover:text-gray-700" href="{{ route('catalog.plugins') }}">Plugins</a>
             <a class="hover:text-gray-700" href="{{ route('catalog.themes') }}">Themes</a>
             <a class="hover:text-gray-700" href="{{ route('developers') }}">Publish your extension</a>
+            <a class="hover:text-gray-700" href="{{ route('legal-notice') }}">Legal notice</a>
+            <a class="hover:text-gray-700" href="{{ route('privacy-policy') }}">Privacy policy</a>
         </div>
     </div>
 </footer>

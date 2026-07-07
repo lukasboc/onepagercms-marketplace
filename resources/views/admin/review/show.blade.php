@@ -7,6 +7,12 @@
 
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @if (session('status'))
+                <div class="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3">
+                    {{ session('status') }}
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 space-y-2">
                     <p><strong>Slug:</strong> {{ $version->item->slug }}</p>
@@ -28,6 +34,67 @@
                         <a class="text-indigo-600 hover:underline"
                            href="{{ route('admin.review.download', $version) }}">Download review ZIP</a>
                     </p>
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
+                    <h3 class="font-semibold mb-3">Automated checks</h3>
+                    <p class="text-sm text-gray-500 mb-4">
+                        Results are advisory — they flag issues for review and never approve or reject a submission.
+                    </p>
+                    <ul class="divide-y">
+                        @foreach ($checkLabels as $check => $label)
+                            @php($result = $checks->get($check))
+                            @php($badgeClass = $result === null ? '' : match ($result->status) {
+                                \App\Models\VersionCheck::STATUS_PASSED => 'bg-green-100 text-green-800',
+                                \App\Models\VersionCheck::STATUS_WARNING => 'bg-yellow-100 text-yellow-800',
+                                \App\Models\VersionCheck::STATUS_FAILED => 'bg-red-100 text-red-800',
+                                default => 'bg-gray-100 text-gray-600',
+                            })
+                            <li class="py-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div class="space-y-1">
+                                    <p>
+                                        <span class="font-medium">{{ $label }}</span>
+                                        @if ($result === null)
+                                            <span class="inline-flex px-2 py-0.5 rounded text-xs font-semibold border border-gray-300 text-gray-500 ml-2">Not run</span>
+                                        @else
+                                            <span class="inline-flex px-2 py-0.5 rounded text-xs font-semibold ml-2 {{ $badgeClass }}">{{ ucfirst($result->status) }}</span>
+                                        @endif
+                                    </p>
+                                    @if ($result !== null)
+                                        <p class="text-gray-400 text-sm">
+                                            by {{ $result->runner?->name ?? 'system' }},
+                                            {{ $result->updated_at->diffForHumans() }}
+                                        </p>
+                                        @if (count($result->findings) > 15)
+                                            <details class="text-sm">
+                                                <summary class="cursor-pointer text-gray-600">{{ count($result->findings) }} findings</summary>
+                                                <ul class="list-disc ml-5 mt-1 space-y-0.5">
+                                                    @foreach ($result->findings as $finding)
+                                                        <li>{{ $finding }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            </details>
+                                        @else
+                                            <ul class="list-disc ml-5 text-sm space-y-0.5">
+                                                @foreach ($result->findings as $finding)
+                                                    <li>{{ $finding }}</li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+                                    @endif
+                                </div>
+                                <form method="post" action="{{ route('admin.review.checks.run', [$version, $check]) }}" class="shrink-0">
+                                    @csrf
+                                    <button type="submit"
+                                            class="px-4 py-2 bg-indigo-600 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500">
+                                        {{ $result === null ? 'Run check' : 'Re-run' }}
+                                    </button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
 
