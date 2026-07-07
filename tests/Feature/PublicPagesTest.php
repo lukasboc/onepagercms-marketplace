@@ -97,18 +97,24 @@ class PublicPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Legal notice')
             ->assertSee('Test Operator')
-            ->assertSee('legal@example.test');
+            ->assertDontSee('legal@example.test')
+            ->assertSee('legal [at] example [punkt] test');
     }
 
     public function test_privacy_policy_is_public_and_shows_controller_from_config(): void
     {
-        config(['legal.operator.name' => 'Test Operator']);
+        config([
+            'legal.operator.name' => 'Test Operator',
+            'legal.operator.email' => 'legal@example.test',
+        ]);
 
         $this->get('/privacy-policy')
             ->assertOk()
             ->assertSee('Privacy policy')
             ->assertSee('Test Operator')
-            ->assertSee('GDPR');
+            ->assertSee('GDPR')
+            ->assertDontSee('legal@example.test')
+            ->assertSee('legal [at] example [punkt] test');
     }
 
     public function test_footer_links_to_legal_pages(): void

@@ -28,9 +28,7 @@
 
             <p class="text-gray-600 mb-2">
                 Email:
-                <a href="mailto:{{ $legal['operator']['email'] }}" class="text-indigo-600 hover:text-indigo-500">
-                    {{ $legal['operator']['email'] }}
-                </a>
+                <x-obfuscated-email :email="$legal['operator']['email']" />
             </p>
 
             @if ($legal['operator']['phone'])
