@@ -17,12 +17,15 @@ class VersionCheck extends Model
 
     const CHECK_FUNCTIONALITY = 'functionality';
 
+    const CHECK_THEME_OPTIONS = 'theme_options';
+
     const CHECKS = [
         self::CHECK_MANIFEST,
         self::CHECK_HOOKS,
         self::CHECK_UNINSTALL,
         self::CHECK_MALWARE,
         self::CHECK_FUNCTIONALITY,
+        self::CHECK_THEME_OPTIONS,
     ];
 
     const STATUS_PASSED = 'passed';

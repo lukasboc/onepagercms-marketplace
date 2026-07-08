@@ -67,6 +67,11 @@ class VersionCheckService
             return [VersionCheck::STATUS_SKIPPED, ['This check only applies to plugins.']];
         }
 
+        $themeOnly = [VersionCheck::CHECK_THEME_OPTIONS];
+        if ($version->item->type !== 'theme' && in_array($check, $themeOnly, true)) {
+            return [VersionCheck::STATUS_SKIPPED, ['This check only applies to themes.']];
+        }
+
         $zipPath = $version->zip_path === null ? null : Storage::disk('local')->path($version->zip_path);
         if ($zipPath === null || ! is_file($zipPath)) {
             return [VersionCheck::STATUS_FAILED, ['The review ZIP is missing from storage.']];
@@ -97,6 +102,7 @@ class VersionCheckService
                 VersionCheck::CHECK_UNINSTALL => $this->checkUninstall($zip, $entries, $slug),
                 VersionCheck::CHECK_MALWARE => $this->checkMalware($zip, $entries),
                 VersionCheck::CHECK_FUNCTIONALITY => $this->checkFunctionality($zip, $rootPrefix, $manifest, $slug),
+                VersionCheck::CHECK_THEME_OPTIONS => $this->checkThemeOptions($zip, $entries, $manifest, $slug),
             };
         } finally {
             $zip->close();
@@ -419,6 +425,101 @@ class VersionCheckService
         }
 
         return [VersionCheck::STATUS_PASSED, array_merge(['The main file loads without errors.'], $info)];
+    }
+
+    /**
+     * Theme-only: verifies that every option declared in theme.json is
+     * actually referenced by the theme's PHP code, and that no undeclared
+     * option keys are read. Usage detection is heuristic (quoted key or the
+     * full theme-option:<slug>:<key> settings literal), so mismatches are
+     * reported as warnings for the reviewer, never as hard failures.
+     *
+     * @return array{0: string, 1: string[]}
+     */
+    private function checkThemeOptions(ZipArchive $zip, array $entries, ?array $manifest, string $slug): array
+    {
+        if (! is_array($manifest)) {
+            return [VersionCheck::STATUS_FAILED, ['The theme.json manifest is missing or invalid.']];
+        }
+
+        $findings = [];
+        $declared = [];
+
+        $rawOptions = $manifest['options'] ?? [];
+        if (! is_array($rawOptions)) {
+            $findings[] = 'The manifest "options" entry is not an array.';
+            $rawOptions = [];
+        }
+
+        foreach (array_values($rawOptions) as $index => $option) {
+            $position = 'options['.$index.']';
+            if (! is_array($option) || ! isset($option['key']) || ! is_string($option['key'])) {
+                $findings[] = "{$position} has no valid \"key\" and will be ignored by the CMS.";
+
+                continue;
+            }
+            $key = $option['key'];
+            if (preg_match('/^[a-z0-9][a-z0-9\-]{0,49}$/', $key) !== 1) {
+                $findings[] = "{$position} key \"{$key}\" does not match ^[a-z0-9][a-z0-9-]{0,49}$ and will be ignored by the CMS.";
+
+                continue;
+            }
+            if (in_array($key, $declared, true)) {
+                $findings[] = "Option key \"{$key}\" is declared more than once.";
+
+                continue;
+            }
+            $type = $option['type'] ?? 'text';
+            if (! in_array($type, ['color', 'text', 'select'], true)) {
+                $findings[] = "Option \"{$key}\" has unknown type \"".(is_scalar($type) ? $type : gettype($type)).'"; the CMS will treat it as "text".';
+            }
+            if ($type === 'select') {
+                $choices = $option['choices'] ?? [];
+                if (! is_array($choices) || array_filter($choices, 'is_string') === []) {
+                    $findings[] = "Select option \"{$key}\" has no valid \"choices\" and will be ignored by the CMS.";
+
+                    continue;
+                }
+            }
+            $declared[] = $key;
+        }
+
+        $sources = $this->phpSources($zip, $entries);
+        $allSource = implode("\n", $sources);
+
+        foreach ($declared as $key) {
+            $quotedKey = preg_quote($key, '/');
+            $used = str_contains($allSource, 'theme-option:'.$slug.':'.$key)
+                || preg_match('/[\'"]'.$quotedKey.'[\'"]/', $allSource) === 1;
+            if (! $used) {
+                $findings[] = "Declared option \"{$key}\" is never referenced in the theme's PHP code.";
+            }
+        }
+
+        foreach ($sources as $entry => $source) {
+            $readKeys = [];
+            if (preg_match_all('/theme-option:'.preg_quote($slug, '/').':([a-z0-9\-]+)/', $source, $matches) > 0) {
+                $readKeys = $matches[1];
+            }
+            if (preg_match_all('/\bopcms_theme_option\s*\(\s*[\'"]([a-z0-9\-]+)[\'"]/', $source, $matches) > 0) {
+                $readKeys = array_merge($readKeys, $matches[1]);
+            }
+            foreach (array_unique($readKeys) as $key) {
+                if (! in_array($key, $declared, true)) {
+                    $findings[] = "Option \"{$key}\" is read in {$entry} but not declared in theme.json.";
+                }
+            }
+        }
+
+        if ($findings !== []) {
+            return [VersionCheck::STATUS_WARNING, $findings];
+        }
+
+        if ($declared === []) {
+            return [VersionCheck::STATUS_PASSED, ['The theme declares no options.']];
+        }
+
+        return [VersionCheck::STATUS_PASSED, ['All '.count($declared).' declared option(s) are referenced in the theme code.']];
     }
 
     /**

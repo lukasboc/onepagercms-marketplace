@@ -362,4 +362,102 @@ class VersionCheckTest extends TestCase
             ->assertSee('Re-run')
             ->assertSee('No suspicious code patterns found.');
     }
+
+    private function themeManifest(string $slug, array $overrides = []): array
+    {
+        return array_merge([
+            'slug' => $slug,
+            'type' => 'theme',
+            'name' => 'Test Theme',
+            'version' => '1.0.0',
+            'description' => 'A theme.',
+            'author' => 'Tester',
+            'requires_opcms' => '1.2.0',
+        ], $overrides);
+    }
+
+    public function test_theme_options_check_passes_when_all_options_are_used(): void
+    {
+        $version = $this->submit($this->themeManifest('used-theme', [
+            'options' => [
+                ['key' => 'sidebar-bg', 'type' => 'color', 'default' => '#1e2126'],
+                ['key' => 'font-display', 'type' => 'select', 'default' => 'Sora', 'choices' => ['Sora', 'System']],
+            ],
+        ]), [
+            'templates/styles.php' => "<?php\n\$bg = \$settingactions->getSettingValue('theme-option:used-theme:sidebar-bg');\n",
+            'templates/head.php' => "<?php\n\$font = opcms_theme_option('font-display', 'Sora');\n",
+        ]);
+
+        $result = $this->runCheck($version, VersionCheck::CHECK_THEME_OPTIONS);
+        $this->assertSame(VersionCheck::STATUS_PASSED, $result->status);
+        $this->assertHasFindingContaining($result, 'All 2 declared option(s) are referenced');
+    }
+
+    public function test_theme_options_check_warns_about_unused_options(): void
+    {
+        $version = $this->submit($this->themeManifest('unused-theme', [
+            'options' => [
+                ['key' => 'sidebar-bg', 'type' => 'color', 'default' => '#1e2126'],
+                ['key' => 'never-used', 'type' => 'color', 'default' => '#ffffff'],
+            ],
+        ]), [
+            'templates/styles.php' => "<?php\n\$bg = opcms_theme_option('sidebar-bg');\n",
+        ]);
+
+        $result = $this->runCheck($version, VersionCheck::CHECK_THEME_OPTIONS);
+        $this->assertSame(VersionCheck::STATUS_WARNING, $result->status);
+        $this->assertHasFindingContaining($result, '"never-used" is never referenced');
+    }
+
+    public function test_theme_options_check_warns_about_undeclared_option_reads(): void
+    {
+        $version = $this->submit($this->themeManifest('typo-theme', [
+            'options' => [
+                ['key' => 'sidebar-bg', 'type' => 'color', 'default' => '#1e2126'],
+            ],
+        ]), [
+            'templates/styles.php' => "<?php\n\$a = opcms_theme_option('sidebar-bg');\n\$b = \$settingactions->getSettingValue('theme-option:typo-theme:sidebarbg');\n",
+        ]);
+
+        $result = $this->runCheck($version, VersionCheck::CHECK_THEME_OPTIONS);
+        $this->assertSame(VersionCheck::STATUS_WARNING, $result->status);
+        $this->assertHasFindingContaining($result, '"sidebarbg" is read in templates/styles.php but not declared');
+    }
+
+    public function test_theme_options_check_warns_about_invalid_option_entries(): void
+    {
+        $version = $this->submit($this->themeManifest('invalid-theme', [
+            'options' => [
+                ['key' => 'font-display', 'type' => 'select', 'default' => 'Sora'],
+            ],
+        ]), [
+            'templates/head.php' => "<?php\n\$font = opcms_theme_option('font-display');\n",
+        ]);
+
+        $result = $this->runCheck($version, VersionCheck::CHECK_THEME_OPTIONS);
+        $this->assertSame(VersionCheck::STATUS_WARNING, $result->status);
+        $this->assertHasFindingContaining($result, 'Select option "font-display" has no valid "choices"');
+    }
+
+    public function test_theme_options_check_is_skipped_for_plugins(): void
+    {
+        $version = $this->submit($this->pluginManifest('options-plugin'), [
+            'main.php' => "<?php\nadd_action('opcms_body_end', function () {});\n",
+        ]);
+
+        $result = $this->runCheck($version, VersionCheck::CHECK_THEME_OPTIONS);
+        $this->assertSame(VersionCheck::STATUS_SKIPPED, $result->status);
+        $this->assertHasFindingContaining($result, 'only applies to themes');
+    }
+
+    public function test_theme_options_check_passes_for_theme_without_options(): void
+    {
+        $version = $this->submit($this->themeManifest('plain-theme'), [
+            'templates/index.php' => "<?php\necho 'theme';\n",
+        ]);
+
+        $result = $this->runCheck($version, VersionCheck::CHECK_THEME_OPTIONS);
+        $this->assertSame(VersionCheck::STATUS_PASSED, $result->status);
+        $this->assertHasFindingContaining($result, 'declares no options');
+    }
 }

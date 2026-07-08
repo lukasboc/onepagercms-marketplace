@@ -23,6 +23,7 @@ class ReviewController extends Controller
         VersionCheck::CHECK_UNINSTALL => 'Uninstall actions',
         VersionCheck::CHECK_MALWARE => 'Malware scan',
         VersionCheck::CHECK_FUNCTIONALITY => 'Functionality smoke test',
+        VersionCheck::CHECK_THEME_OPTIONS => 'Theme options usage',
     ];
 
     public function index(): View
